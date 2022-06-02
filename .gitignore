@@ -1,0 +1,8 @@
+model/dyslexia/*
+model/handwritten/*
+temp/*
+!/**/.gitkeep
+didow-ml-handwriting-bucket.json
+**/.env
+__pycache__
+venv
