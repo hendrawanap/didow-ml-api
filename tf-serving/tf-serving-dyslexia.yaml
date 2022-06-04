@@ -1,0 +1,14 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: [ 'cp', '-r', '${_EXPORT_BUCKET}', '.' ]
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}', '.' ]
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
+images:
+  - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+substitutions:
+  _EXPORT_BUCKET: gs://didow-ml-models/dyslexia/exporter
+  _LOCATION: asia-southeast2
+  _REPOSITORY: didow-tf-serving
+  _IMAGE: dyslexia
