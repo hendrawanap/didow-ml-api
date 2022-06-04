@@ -1,0 +1,10 @@
+fastapi==0.78.0
+pydantic==1.9.1
+uvicorn==0.17.6
+aiofiles==0.8.0
+aiohttp==3.8.1
+python-dotenv==0.20.0
+python-multipart==0.0.5
+wget==3.2
+imutils==0.5.4
+opencv-python==4.5.5.64
