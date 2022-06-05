@@ -1,11 +1,39 @@
 steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}', '.' ]
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+      - api/.
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+    id: Push
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--image=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+      - '--region=$_DEPLOY_REGION'
+      - '--set-env-vars'
+      - >-
+        TF_SERVING_HANDWRITTEN_URL=${_TF_SERVING_HANDWRITTEN_URL},
+        TF_SERVING_DYSLEXIA_URL=${_TF_SERVING_DYSLEXIA_URL},
+        HANDWRITTEN_MODEL_VERSION=${_HANDWRITTEN_MODEL_VERSION},
+        DYSLEXIA_MODEL_VERSION=${_DYSLEXIA_MODEL_VERSION}
+      - '--quiet'
+    id: Deploy
+    entrypoint: gcloud
 images:
   - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+options:
+  substitutionOption: ALLOW_LOOSE
 substitutions:
   _LOCATION: asia-southeast2
   _REPOSITORY: didow-api
   _IMAGE: didow-ml-api
+  _DEPLOY_REGION: asia-southeast2
