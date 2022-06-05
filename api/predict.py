@@ -71,7 +71,15 @@ async def predict_handwritten(inputs):
     async with http.ClientSession() as session:
         payload = { 'instances': inputs }
         jsonPayload = json.dumps(payload)
-        tf_serving_url = getenv('TF_SERVING_HANDWRITTEN_URL')
+        base_url = getenv("TF_SERVING_HANDWRITTEN_URL")
+        model_version = getenv("HANDWRITTEN_MODEL_VERSION")
+        tf_serving_url = ''
+        if base_url is None:
+            raise Exception('No TF Serving Handwritten URL Provided')
+        if model_version is None:
+            tf_serving_url = f'{base_url}/v1/models/consumption:predict'
+        else:
+            tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
         async with session.post(tf_serving_url, data=jsonPayload) as response:
             jsonResponse = await response.json()
             return jsonResponse['predictions']
@@ -82,7 +90,15 @@ async def predict_dyslexia(inputs):
     async with http.ClientSession() as session:
         payload = { 'instances': inputs }
         jsonPayload = json.dumps(payload)
-        tf_serving_url = getenv('TF_SERVING_DYSLEXIA_URL')
+        base_url = getenv("TF_SERVING_DYSLEXIA_URL")
+        model_version = getenv("DYSLEXIA_MODEL_VERSION")
+        tf_serving_url = ''
+        if base_url is None:
+            raise Exception('No TF Serving Dyslexia URL Provided')
+        if model_version is None:
+            tf_serving_url = f'{base_url}/v1/models/consumption:predict'
+        else:
+            tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
         async with session.post(tf_serving_url, data=jsonPayload) as response:
             jsonResponse = await response.json()
             return jsonResponse['predictions']
