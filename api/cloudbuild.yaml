@@ -36,4 +36,5 @@ substitutions:
   _LOCATION: asia-southeast2
   _REPOSITORY: didow-api
   _IMAGE: didow-ml-api
+  _SERVICE_NAME: didow-ml-api
   _DEPLOY_REGION: asia-southeast2
