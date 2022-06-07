@@ -25,10 +25,10 @@ def check_prediction(expected: str, predict: str):
 
 async def predict(filename, expected):
     # preprocess the input image
-    contours, gray, img = preprocess_image(filename)
+    contours, gray, img, img_height = preprocess_image(filename)
 
     # get the handwritten inputs
-    hwt_inputs = get_hwt_inputs(contours, gray)
+    hwt_inputs = get_hwt_inputs(contours, gray, img_height)
 
     # get the prediction from tf-serving-handwritten
     hwt_preds = await predict_handwritten(hwt_inputs.tolist())
@@ -51,7 +51,7 @@ async def predict(filename, expected):
     dysl_result = []
     if not is_correct:
         # if incorrect, get the dyslexia inputs
-        dysl_inputs = get_dsyl_inputs(contours, gray)
+        dysl_inputs = get_dsyl_inputs(contours, gray, img_height)
 
         # get the prediction from tf-serving-dyslexia
         dysl_preds = await predict_dyslexia(dysl_inputs.tolist())
