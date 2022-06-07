@@ -21,8 +21,9 @@ def shadow_remove(img):
 
 def preprocess_image(img):
     image = cv2.imread(img)
-    image = imutils.resize(image, width=300)
-    image = shadow_remove(image)
+    image = imutils.resize(image, width=350)
+    height = image.shape[0]
+    # image = shadow_remove(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
@@ -32,18 +33,19 @@ def preprocess_image(img):
     cnts = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     cnts = sort_contours(cnts, method="left-to-right")[0]
-    return cnts, gray, image
+    return cnts, gray, image, img_height
 
 
 # initialize the list of contour bounding boxes and associated characters that we'll be OCR'ing
-def set_box(contours, gray, width, height):
+def set_box(contours, gray, width, height, img_height):
     chars = []
+    img_height = int(height * 0.7)
     for c in contours:
         # compute the bounding box of the contour
         (x, y, w, h) = cv2.boundingRect(c)
         # filter out bounding boxes, ensuring they are neither too small
         # nor too large
-        if (w >= 5 and w <= 150) and (h >= 20 and h <= 125):
+        if (w >= 5 and w <= 150) and (h >= img_height and h <= 125):
             # extract the character and threshold it to make the character
             # appear as *white* (foreground) on a *black* background, then
             # grab the width and height of the thresholded image
@@ -79,13 +81,13 @@ def set_box(contours, gray, width, height):
     return chars
 
 
-def get_dsyl_inputs(contours, gray):
-    chars = set_box(contours, gray, 150, 150)
+def get_dsyl_inputs(contours, gray, img_height):
+    chars = set_box(contours, gray, 150, 150, img_height)
     chars = np.array([cv2.cvtColor(c[0], cv2.COLOR_BGR2RGB) for c in chars], dtype="float32")
     return chars
 
 
-def get_hwt_inputs(contours, gray):
-    chars = set_box(contours, gray, 28, 28)
+def get_hwt_inputs(contours, gray, img_height):
+    chars = set_box(contours, gray, 28, 28, img_height)
     chars = np.array([c[0] for c in chars], dtype="float32")
     return chars
