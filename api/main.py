@@ -17,7 +17,11 @@ async def analyze_handwriting(handwriting: UploadFile, data = Form()):
         while content := await in_file.read(1024):
             await out_file.write(content)
 
-    handwritten_result, dyslexia_result = await predict(out_file_path, parsed_json['expectedWord'])
+    try:
+        handwritten_result, dyslexia_result = await predict(out_file_path, parsed_json['expectedWord'])
+    except:
+        remove(out_file_path)
+        raise Exception('Server Error')
     # is_correct, predicted = check_prediction(parsed_json['expectedWord'], handwritten_result)
     is_correct = expected_word == handwritten_result
     remove(out_file_path)

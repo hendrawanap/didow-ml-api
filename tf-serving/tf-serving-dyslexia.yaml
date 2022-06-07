@@ -1,14 +1,42 @@
 steps:
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: [ 'cp', '-r', '${_EXPORT_BUCKET}', '.' ]
-  - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}', '.' ]
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
+  - name: gcr.io/cloud-builders/gsutil
+    args:
+      - cp
+      - '-r'
+      - '${_EXPORT_BUCKET}'
+      - tf-serving/.
+    id: Get ML Models
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+      - tf-serving/.
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+    id: Push
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--image=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    id: Deploy
+    entrypoint: gcloud
 images:
   - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+options:
+  substitutionOption: ALLOW_LOOSE
 substitutions:
-  _EXPORT_BUCKET: gs://didow-ml-models/dyslexia/exporter
+  _DEPLOY_REGION: asia-southeast2
   _LOCATION: asia-southeast2
   _REPOSITORY: didow-tf-serving
   _IMAGE: dyslexia
+  _EXPORT_BUCKET: 'gs://didow-ml-models/dyslexia/exporter'
+  _SERVICE_NAME: didow-tf-serving-dyslexia
