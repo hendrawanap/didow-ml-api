@@ -30,38 +30,42 @@ async def predict(filename, expected):
     # get the handwritten inputs
     hwt_inputs = get_hwt_inputs(contours, gray, img_height)
 
-    # get the prediction from tf-serving-handwritten
-    hwt_preds = await predict_handwritten(hwt_inputs.tolist())
-
-    # define the list of label names
-    labelAlpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    labelAlpha = [l for l in labelAlpha]
-    labelDysl = ['Corrected', 'Normal', 'Reversal']
-
     hwt_result = ''
-    for pred in hwt_preds:
-        i = np.argmax(pred)
-        prob = pred[i]
-        label = labelAlpha[i]
-        hwt_result += label.lower()
-    print('Handwritten: {}'.format(hwt_result))
-
-    is_correct = hwt_result == expected
-
     dysl_result = []
-    if not is_correct:
-        # if incorrect, get the dyslexia inputs
-        dysl_inputs = get_dsyl_inputs(contours, gray, img_height)
 
-        # get the prediction from tf-serving-dyslexia
-        dysl_preds = await predict_dyslexia(dysl_inputs.tolist())
-        for pred in dysl_preds:
+    if len(hwt_inputs) > 0:
+        # get the prediction from tf-serving-handwritten
+        hwt_preds = await predict_handwritten(hwt_inputs.tolist())
+
+        # define the list of label names
+        labelAlpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        labelAlpha = [l for l in labelAlpha]
+        labelDysl = ['Corrected', 'Normal', 'Reversal']
+
+        for pred in hwt_preds:
             i = np.argmax(pred)
             prob = pred[i]
-            label = labelDysl[i]
-            dysl_result.append(label)
-    print('Dyslexia: {}'.format(dysl_result))
+            label = labelAlpha[i]
+            hwt_result += label.lower()
+
+
+        is_correct = hwt_result == expected
+
+        if not is_correct:
+            # if incorrect, get the dyslexia inputs
+            dysl_inputs = get_dsyl_inputs(contours, gray, img_height)
+
+            # get the prediction from tf-serving-dyslexia
+            dysl_preds = await predict_dyslexia(dysl_inputs.tolist())
+            for pred in dysl_preds:
+                i = np.argmax(pred)
+                prob = pred[i]
+                label = labelDysl[i]
+                dysl_result.append(label)
+
     dysl_result = 'Reversal' in dysl_result
+    print('Handwritten: {}'.format(hwt_result))
+    print('Dyslexia: {}'.format(dysl_result))
 
     return hwt_result, dysl_result
 
