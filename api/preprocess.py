@@ -4,48 +4,28 @@ import imutils
 import cv2
 from imutils.contours import sort_contours
 
-
-def shadow_remove(img):
-    rgb_planes = cv2.split(img)
-    result_norm_planes = []
-    for plane in rgb_planes:
-        dilated_img = cv2.dilate(plane, np.ones((7, 7), np.uint8))
-        bg_img = cv2.medianBlur(dilated_img, 21)
-        diff_img = 255 - cv2.absdiff(plane, bg_img)
-        norm_img = cv2.normalize(
-            diff_img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        result_norm_planes.append(norm_img)
-    shadowremov = cv2.merge(result_norm_planes)
-    return shadowremov
-
-
 def preprocess_image(img):
     image = cv2.imread(img)
-    image = imutils.resize(image, width=350)
-    img_height = image.shape[0]
-    # image = shadow_remove(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    # perform edge detection, find contours in the edge map, and sort the resulting contours from left-to-right
-    edged = cv2.Canny(blurred, 30, 150)
-    # ret, im = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-    cnts = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    cnts = sort_contours(cnts, method="left-to-right")[0]
-    return cnts, gray, image, img_height
+    ret, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
+    rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+    dilation = cv2.dilate(thresh1, rect_kernel, iterations=1)
+    contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL,
+                                        cv2.CHAIN_APPROX_NONE)
+    contours = sort_contours(contours, method="left-to-right")[0]
+    img_height = image.shape[0]
+    return contours, gray, image, img_height
 
 
 # initialize the list of contour bounding boxes and associated characters that we'll be OCR'ing
 def set_box(contours, gray, width, height, img_height):
     chars = []
-    img_height = int(height * 0.7)
     for c in contours:
         # compute the bounding box of the contour
         (x, y, w, h) = cv2.boundingRect(c)
         # filter out bounding boxes, ensuring they are neither too small
         # nor too large
-        if (w >= 5 and w <= 150) and (h >= img_height and h <= 125):
+       	if (h >= int(img_height * 0.3)):
             # extract the character and threshold it to make the character
             # appear as *white* (foreground) on a *black* background, then
             # grab the width and height of the thresholded image
