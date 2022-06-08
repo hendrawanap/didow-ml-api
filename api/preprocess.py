@@ -22,7 +22,7 @@ def shadow_remove(img):
 def preprocess_image(img):
     image = cv2.imread(img)
     image = imutils.resize(image, width=350)
-    height = image.shape[0]
+    img_height = image.shape[0]
     # image = shadow_remove(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
