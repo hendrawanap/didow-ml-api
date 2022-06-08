@@ -5,4 +5,4 @@ curl https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.re
 RUN apt update && apt-get install tensorflow-model-server
 COPY model.config .
 COPY exporter /models/tf_models
-CMD tensorflow_model_server --port=8500 --rest_api_port=$PORT --model_config_file=model.config
+CMD tensorflow_model_server --port=8500 --rest_api_port=$PORT --model_config_file=model.config --enable_model_warmup
