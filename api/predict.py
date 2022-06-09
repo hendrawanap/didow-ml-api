@@ -23,7 +23,7 @@ def check_prediction(expected: str, predict: str):
     return is_correct, predicted
 
 
-async def predict(filename, expected):
+async def predict(filename, expected, version = 0):
     # preprocess the input image
     contours, gray, img, img_height = preprocess_image(filename)
 
@@ -35,7 +35,7 @@ async def predict(filename, expected):
 
     if len(hwt_inputs) > 0:
         # get the prediction from tf-serving-handwritten
-        hwt_preds = await predict_handwritten(hwt_inputs.tolist())
+        hwt_preds = await predict_handwritten(hwt_inputs.tolist(), version)
 
         # define the list of label names
         labelAlpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -70,7 +70,7 @@ async def predict(filename, expected):
     return hwt_result, dysl_result
 
 
-async def predict_handwritten(inputs):
+async def predict_handwritten(inputs, version):
     # Make request to tf-serving-handwritten
     async with http.ClientSession() as session:
         payload = { 'instances': inputs }
@@ -83,7 +83,10 @@ async def predict_handwritten(inputs):
         if model_version is None:
             tf_serving_url = f'{base_url}/v1/models/consumption:predict'
         else:
-            tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
+            if version is not None:
+                tf_serving_url = f'{base_url}/v1/models/consumption/versions/{version}:predict'
+            else:
+                tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
         async with session.post(tf_serving_url, data=jsonPayload) as response:
             jsonResponse = await response.json()
             return jsonResponse['predictions']
