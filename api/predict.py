@@ -23,55 +23,70 @@ def check_prediction(expected: str, predict: str):
     return is_correct, predicted
 
 
-async def predict(filename, expected):
+async def predict(filename, expected, version = 0):
     # preprocess the input image
-    contours, gray, img = preprocess_image(filename)
+    contours, gray, img, img_height = preprocess_image(filename)
 
     # get the handwritten inputs
-    hwt_inputs = get_hwt_inputs(contours, gray)
-
-    # get the prediction from tf-serving-handwritten
-    hwt_preds = await predict_handwritten(hwt_inputs.tolist())
-
-    # define the list of label names
-    labelAlpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    labelAlpha = [l for l in labelAlpha]
-    labelDysl = ['Corrected', 'Normal', 'Reversal']
+    hwt_inputs = get_hwt_inputs(contours, gray, img_height)
 
     hwt_result = ''
-    for pred in hwt_preds:
-        i = np.argmax(pred)
-        prob = pred[i]
-        label = labelAlpha[i]
-        hwt_result += label.lower()
-    print('Handwritten: {}'.format(hwt_result))
-
-    is_correct = hwt_result == expected
-
     dysl_result = []
-    if not is_correct:
-        # if incorrect, get the dyslexia inputs
-        dysl_inputs = get_dsyl_inputs(contours, gray)
 
-        # get the prediction from tf-serving-dyslexia
-        dysl_preds = await predict_dyslexia(dysl_inputs.tolist())
-        for pred in dysl_preds:
+    if len(hwt_inputs) > 0:
+        # get the prediction from tf-serving-handwritten
+        hwt_preds = await predict_handwritten(hwt_inputs.tolist(), version)
+
+        # define the list of label names
+        labelAlpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        labelAlpha = [l for l in labelAlpha]
+        labelDysl = ['Corrected', 'Normal', 'Reversal']
+
+        for pred in hwt_preds:
             i = np.argmax(pred)
             prob = pred[i]
-            label = labelDysl[i]
-            dysl_result.append(label)
-    print('Dyslexia: {}'.format(dysl_result))
+            label = labelAlpha[i]
+            hwt_result += label.lower()
+
+
+        is_correct = hwt_result == expected
+
+        if not is_correct:
+            # if incorrect, get the dyslexia inputs
+            dysl_inputs = get_dsyl_inputs(contours, gray, img_height)
+
+            # get the prediction from tf-serving-dyslexia
+            dysl_preds = await predict_dyslexia(dysl_inputs.tolist())
+            for pred in dysl_preds:
+                i = np.argmax(pred)
+                prob = pred[i]
+                label = labelDysl[i]
+                dysl_result.append(label)
+
     dysl_result = 'Reversal' in dysl_result
+    print('Handwritten: {}'.format(hwt_result))
+    print('Dyslexia: {}'.format(dysl_result))
 
     return hwt_result, dysl_result
 
 
-async def predict_handwritten(inputs):
+async def predict_handwritten(inputs, version):
     # Make request to tf-serving-handwritten
     async with http.ClientSession() as session:
         payload = { 'instances': inputs }
         jsonPayload = json.dumps(payload)
-        tf_serving_url = getenv('TF_SERVING_HANDWRITTEN_URL')
+        base_url = getenv("TF_SERVING_HANDWRITTEN_URL")
+        model_version = getenv("HANDWRITTEN_MODEL_VERSION")
+        tf_serving_url = ''
+        if base_url is None:
+            raise Exception('No TF Serving Handwritten URL Provided')
+        if model_version is None:
+            tf_serving_url = f'{base_url}/v1/models/consumption:predict'
+        else:
+            if version is not None:
+                tf_serving_url = f'{base_url}/v1/models/consumption/versions/{version}:predict'
+            else:
+                tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
         async with session.post(tf_serving_url, data=jsonPayload) as response:
             jsonResponse = await response.json()
             return jsonResponse['predictions']
@@ -82,7 +97,15 @@ async def predict_dyslexia(inputs):
     async with http.ClientSession() as session:
         payload = { 'instances': inputs }
         jsonPayload = json.dumps(payload)
-        tf_serving_url = getenv('TF_SERVING_DYSLEXIA_URL')
+        base_url = getenv("TF_SERVING_DYSLEXIA_URL")
+        model_version = getenv("DYSLEXIA_MODEL_VERSION")
+        tf_serving_url = ''
+        if base_url is None:
+            raise Exception('No TF Serving Dyslexia URL Provided')
+        if model_version is None:
+            tf_serving_url = f'{base_url}/v1/models/consumption:predict'
+        else:
+            tf_serving_url = f'{base_url}/v1/models/consumption/versions/{model_version}:predict'
         async with session.post(tf_serving_url, data=jsonPayload) as response:
             jsonResponse = await response.json()
             return jsonResponse['predictions']
